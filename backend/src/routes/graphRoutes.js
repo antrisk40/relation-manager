@@ -1,10 +1,10 @@
-import express, { Request, Response, NextFunction } from 'express';
-import * as graphService from '../services/graphService';
+const express = require('express');
+const graphService = require('../services/graphService');
 
 const router = express.Router();
 
 // GET /api/graph - Return graph data (users + relationships)
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req, res, next) => {
   try {
     const graphData = await graphService.getGraphData();
     res.json(graphData);
@@ -13,5 +13,6 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-export default router;
+module.exports = router;
+
 

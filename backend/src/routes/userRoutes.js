@@ -1,6 +1,6 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import * as userService from '../services/userService';
+const express = require('express');
+const { z } = require('zod');
+const userService = require('../services/userService');
 
 const router = express.Router();
 
@@ -22,8 +22,8 @@ const linkUserSchema = z.object({
 });
 
 // Validation middleware
-const validate = (schema: z.ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+const validate = (schema) => {
+  return (req, res, next) => {
     try {
       schema.parse(req.body);
       next();
@@ -40,7 +40,7 @@ const validate = (schema: z.ZodSchema) => {
 };
 
 // GET /api/users - Fetch all users
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req, res, next) => {
   try {
     const users = await userService.getAllUsers();
     res.json(users);
@@ -50,15 +50,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // GET /api/users/:id - Get single user
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await userService.getUserById(id);
-    
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
     res.json(user);
   } catch (error) {
     next(error);
@@ -66,12 +64,12 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // POST /api/users - Create new user
-router.post('/', validate(createUserSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', validate(createUserSchema), async (req, res, next) => {
   try {
     const user = await userService.createUser(req.body);
     res.status(201).json(user);
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error) {
+    if (error && error.code === 'P2002') {
       return res.status(409).json({ error: 'Username already exists' });
     }
     next(error);
@@ -79,16 +77,16 @@ router.post('/', validate(createUserSchema), async (req: Request, res: Response,
 });
 
 // PUT /api/users/:id - Update user
-router.put('/:id', validate(updateUserSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', validate(updateUserSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await userService.updateUser(id, req.body);
     res.json(user);
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error) {
+    if (error && error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (error.code === 'P2002') {
+    if (error && error.code === 'P2002') {
       return res.status(409).json({ error: 'Username already exists' });
     }
     next(error);
@@ -96,16 +94,16 @@ router.put('/:id', validate(updateUserSchema), async (req: Request, res: Respons
 });
 
 // DELETE /api/users/:id - Delete user
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     await userService.deleteUser(id);
     res.status(204).send();
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error) {
+    if (error && error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    if (error.message.includes('Cannot delete user with existing friendships')) {
+    if (error && error.message && error.message.includes('Cannot delete user with existing friendships')) {
       return res.status(409).json({ error: error.message });
     }
     next(error);
@@ -113,20 +111,20 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 // POST /api/users/:id/link - Create relationship
-router.post('/:id/link', validate(linkUserSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/link', validate(linkUserSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { friendId } = req.body as { friendId: string };
+    const { friendId } = req.body;
     await userService.linkUsers(id, friendId);
     res.status(201).json({ message: 'Friendship created successfully' });
-  } catch (error: any) {
-    if (error.message.includes('already exists')) {
+  } catch (error) {
+    if (error && error.message && error.message.includes('already exists')) {
       return res.status(409).json({ error: error.message });
     }
-    if (error.message.includes('not found')) {
+    if (error && error.message && error.message.includes('not found')) {
       return res.status(404).json({ error: error.message });
     }
-    if (error.message.includes('cannot be friends with themselves')) {
+    if (error && error.message && error.message.includes('cannot be friends with themselves')) {
       return res.status(400).json({ error: error.message });
     }
     next(error);
@@ -134,24 +132,23 @@ router.post('/:id/link', validate(linkUserSchema), async (req: Request, res: Res
 });
 
 // DELETE /api/users/:id/unlink - Remove relationship
-router.delete('/:id/unlink', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:id/unlink', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { friendId } = req.query;
-    
     if (!friendId || typeof friendId !== 'string') {
       return res.status(400).json({ error: 'friendId query parameter is required' });
     }
-    
     await userService.unlinkUsers(id, friendId);
     res.status(204).send();
-  } catch (error: any) {
-    if (error.message.includes('does not exist')) {
+  } catch (error) {
+    if (error && error.message && error.message.includes('does not exist')) {
       return res.status(404).json({ error: error.message });
     }
     next(error);
   }
 });
 
-export default router;
+module.exports = router;
+
 
