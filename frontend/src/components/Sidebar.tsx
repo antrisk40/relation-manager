@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { User } from '../types/user';
 import { useDrag } from 'react-dnd';
 import { useStore } from '../store/useStore';
 import './Sidebar.css';
@@ -32,9 +33,9 @@ const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   // no labels anymore
 
-  const filteredHobbies = useMemo(() => {
+  const filteredHobbies = useMemo<string[]>(() => {
     if (!searchTerm) return allHobbies;
-    return allHobbies.filter(hobby =>
+    return allHobbies.filter((hobby: string) =>
       hobby.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allHobbies, searchTerm]);
@@ -82,7 +83,7 @@ const Sidebar: React.FC = () => {
           <div className="loading">Loading hobbies...</div>
         ) : filteredHobbies.length > 0 ? (
           <div className="hobbies-list">
-            {filteredHobbies.map((hobby, index) => (
+            {filteredHobbies.map((hobby: string, index: number) => (
               <DraggableHobby key={`${hobby}-${index}`} hobby={hobby} />
             ))}
           </div>
@@ -108,8 +109,8 @@ const Sidebar: React.FC = () => {
 
         <div className="users-list">
           {users
-            .filter(u => !selectedUser || u.id !== selectedUser.id)
-            .map(u => (
+            .filter((u: User) => !selectedUser || u.id !== selectedUser.id)
+            .map((u: User) => (
             <div key={u.id} className="user-row">
               <input
                 type="checkbox"

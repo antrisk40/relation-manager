@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { useStore } from '../store/useStore';
 import toast from 'react-hot-toast';

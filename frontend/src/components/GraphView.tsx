@@ -41,7 +41,7 @@ const GraphView: React.FC = () => {
     debouncedOnNodeDrag();
   }, [debouncedOnNodeDrag]);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: any) => {
     const user = users.find(u => u.id === node.id);
     if (user) {
       setSelectedUser(user);

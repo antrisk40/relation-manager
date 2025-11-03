@@ -93,9 +93,11 @@ function App() {
         >
           {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
         </button>
-        <Sidebar />
-        <GraphView />
-        <UserManagementPanel />
+        <div className="main">
+          <Sidebar />
+          <GraphView />
+          <UserManagementPanel />
+        </div>
       </div>
     </DndProvider>
   );
