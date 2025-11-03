@@ -55,7 +55,10 @@ interface StoreState {
   setFilterHobby: (hobby: string) => void;
 }
 
-export const useStore = create<StoreState>((set, get) => {
+type SetState<T> = (partial: Partial<T> | ((state: T) => Partial<T>), replace?: boolean) => void;
+type GetState<T> = () => T;
+
+export const useStore = create<StoreState>((set: SetState<StoreState>, get: GetState<StoreState>) => {
   const loadSavedPositions = (): Record<string, { x: number; y: number }> => {
     try {
       const raw = typeof window !== 'undefined' ? window.localStorage.getItem('nodePositions') : null;
@@ -98,12 +101,12 @@ export const useStore = create<StoreState>((set, get) => {
     const saved = get().nodePositions;
     // Pre-compute friend counts from edges
     const friendCountByUserId = new Map<string, number>();
-    edges.forEach((e) => {
+    edges.forEach((e: GraphEdge) => {
       friendCountByUserId.set(e.source, (friendCountByUserId.get(e.source) || 0) + 1);
       friendCountByUserId.set(e.target, (friendCountByUserId.get(e.target) || 0) + 1);
     });
 
-    const flowNodes: Node[] = nodes.map((node, idx) => ({
+    const flowNodes: Node[] = nodes.map((node: GraphNode, idx: number) => ({
       id: node.id,
       type: node.popularityScore > 5 ? 'highScoreNode' : 'lowScoreNode',
       position: saved[node.id]
@@ -119,7 +122,7 @@ export const useStore = create<StoreState>((set, get) => {
       },
     }));
 
-    const flowEdges: Edge[] = edges.map((edge) => ({
+    const flowEdges: Edge[] = edges.map((edge: GraphEdge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -143,7 +146,7 @@ export const useStore = create<StoreState>((set, get) => {
     nodePositions: loadSavedPositions(),
     filterHobby: '',
 
-    fetchGraphData: async () => {
+    fetchGraphData: async (): Promise<void> => {
       set({ isLoading: true });
       try {
         const data = await graphApi.getGraphData();
@@ -162,7 +165,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    fetchUsers: async () => {
+    fetchUsers: async (): Promise<void> => {
       set({ isLoading: true });
       try {
         const users = await userApi.getAll();
@@ -174,7 +177,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    createUser: async (data) => {
+    createUser: async (data: { username: string; age: number; hobbies: string[] }): Promise<void> => {
       try {
         const created = await userApi.create(data);
         toast.success('User created successfully');
@@ -209,7 +212,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    updateUser: async (id, data) => {
+    updateUser: async (id: string, data: Partial<User>): Promise<void> => {
       try {
         const updated = await userApi.update(id, data);
         toast.success('User updated successfully');
@@ -236,7 +239,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    deleteUser: async (id) => {
+    deleteUser: async (id: string): Promise<void> => {
       try {
         await userApi.delete(id);
         toast.success('User deleted successfully');
@@ -252,24 +255,24 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    linkUsers: async (userId, friendId) => {
+    linkUsers: async (userId: string, friendId: string): Promise<void> => {
       try {
         await userApi.link(userId, friendId);
         toast.success('Users linked successfully');
         // Update edges locally to avoid full refresh
-        const exists = get().edges.some(e =>
+        const exists = get().edges.some((e: Edge) =>
           (e.source === userId && e.target === friendId) || (e.source === friendId && e.target === userId)
         );
         if (!exists) {
           set({
             edges: [
               ...get().edges,
-              { id: `${userId}-${friendId}`, source: userId, target: friendId, type: 'smoothstep', animated: true } as any,
+              { id: `${userId}-${friendId}`, source: userId, target: friendId, type: 'smoothstep', animated: true } as Edge,
             ],
           });
           // bump friend counts
           set({
-            nodes: get().nodes.map(n =>
+            nodes: get().nodes.map((n: Node) =>
               n.id === userId || n.id === friendId
                 ? { ...n, data: { ...n.data, friendCount: (n.data as any).friendCount + 1 } }
                 : n
@@ -282,19 +285,19 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    unlinkUsers: async (userId, friendId) => {
+    unlinkUsers: async (userId: string, friendId: string): Promise<void> => {
       try {
         await userApi.unlink(userId, friendId);
         toast.success('Users unlinked successfully');
         // Remove edge locally to avoid full refresh
         set({
-          edges: get().edges.filter(e => !(
+          edges: get().edges.filter((e: Edge) => !(
             (e.source === userId && e.target === friendId) || (e.source === friendId && e.target === userId)
           )),
         });
         // reduce friend counts, floor at 0
         set({
-          nodes: get().nodes.map(n =>
+          nodes: get().nodes.map((n: Node) =>
             n.id === userId || n.id === friendId
               ? { ...n, data: { ...n.data, friendCount: Math.max(0, (n.data as any).friendCount - 1) } }
               : n
@@ -306,7 +309,7 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    addHobbyToUser: async (userId, hobby) => {
+    addHobbyToUser: async (userId: string, hobby: string): Promise<void> => {
       const user = get().users.find(u => u.id === userId);
       if (!user) return;
 
@@ -327,11 +330,11 @@ export const useStore = create<StoreState>((set, get) => {
       }
     },
 
-    onNodesChange: (changes) => {
+    onNodesChange: (changes: NodeChange[]): void => {
       const updated = applyNodeChanges(changes, get().nodes);
       // persist positions for moved nodes
       const positions = { ...get().nodePositions };
-      updated.forEach(n => {
+      updated.forEach((n: Node) => {
         if (n.position) {
           positions[n.id] = { x: n.position.x, y: n.position.y };
         }
@@ -340,13 +343,13 @@ export const useStore = create<StoreState>((set, get) => {
       set({ nodes: updated, nodePositions: positions });
     },
 
-    onEdgesChange: (changes) => {
+    onEdgesChange: (changes: EdgeChange[]): void => {
       set({
         edges: applyEdgeChanges(changes, get().edges),
       });
     },
 
-    onConnect: (connection) => {
+    onConnect: (connection: Connection): void => {
       if (connection.source && connection.target) {
         get().linkUsers(connection.source, connection.target);
       }
@@ -359,7 +362,7 @@ export const useStore = create<StoreState>((set, get) => {
       get().saveToHistory();
     },
 
-    setSelectedUser: (user) => {
+    setSelectedUser: (user: User | null): void => {
       set({ selectedUser: user });
     },
 
