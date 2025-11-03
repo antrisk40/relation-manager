@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  age       Int
+  hobbies   String[]
+  createdAt DateTime @default(now())
+  
+  // Friendships where this user is the initiator
+  friendshipsInitiated Friendship[] @relation("UserFriendships")
+  
+  // Friendships where this user is the friend
+  friendshipsReceived  Friendship[] @relation("FriendFriendships")
+  
+  @@map("users")
+}
+
+// Friendship junction table for bidirectional friendships
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+  
+  user   User @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+  @@map("friendships")
+}
+
