@@ -2,11 +2,11 @@
   "name": "cybernauts-backend",
   "version": "1.0.0",
   "description": "Backend API for Interactive User Relationship & Hobby Network",
-  "main": "src/server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node src/server.ts",
+    "start": "node dist/server.js",
     "test": "jest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
